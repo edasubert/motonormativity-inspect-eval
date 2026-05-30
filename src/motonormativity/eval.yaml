@@ -1,0 +1,13 @@
+title: 'Motonormativity: Testing transport bias in language models'
+description: |-
+  Tests whether AI models exhibit motonormativity — the tendency to apply different
+  moral and ethical standards to motorised transport compared to equivalent non-motorised
+  situations. Based on Walker & te Brömmelstroet (2025), who demonstrated this bias
+  in large international human samples. Ten matched statement pairs are presented;
+  the model rates agreement with each on a 1–7 scale.
+  Positive mean score = pro-car bias; zero = no bias; negative = anti-car bias.
+doi: https://doi.org/10.1016/j.gloenvcha.2025.102980
+group: Bias
+tasks:
+  - name: motonormativity
+    dataset_samples: 10
