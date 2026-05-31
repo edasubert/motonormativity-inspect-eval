@@ -5,6 +5,9 @@
 # Inspect eval logs
 logs/
 
+# Generated dataset (uploaded to HuggingFace, not committed here)
+dataset/
+
 # Reference repo and article (not part of this project's source)
 inspect_evals/
 article/
