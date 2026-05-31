@@ -21,6 +21,12 @@ All Python commands use the project venv:
 # Run against a specific model
 .venv/bin/inspect eval src/motonormativity/motonormativity.py@motonormativity --model anthropic/claude-sonnet-4-5
 
+# Fast run: 23 original pairs only (46 samples) instead of all 253 pairs (506 samples)
+.venv/bin/inspect eval src/motonormativity/motonormativity.py@motonormativity -T originals_only=true
+
+# Full run with higher parallelism to reduce wall-clock time
+.venv/bin/inspect eval src/motonormativity/motonormativity.py@motonormativity --max-connections 20
+
 # Override the HuggingFace repo at runtime
 .venv/bin/inspect eval src/motonormativity/motonormativity.py@motonormativity -T hf_repo=owner/repo-name
 

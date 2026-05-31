@@ -474,6 +474,7 @@ def get_dataset(
     hf_repo: str = HF_REPO,
     split: str = "train",
     shuffle: bool = True,
+    originals_only: bool = False,
 ) -> MemoryDataset:
     """Load statement pairs from HuggingFace and expand into individual samples.
 
@@ -486,10 +487,14 @@ def get_dataset(
         hf_repo: HuggingFace dataset repository (``owner/name``).
         split: Dataset split to load (default ``"train"``).
         shuffle: Randomise statement order so the model cannot infer pairings.
+        originals_only: If True, load only the 23 canonical pairs (variation==0),
+            giving 46 samples. Useful for faster exploratory runs.
     """
     from datasets import load_dataset as hf_load
 
     hf_data = hf_load(hf_repo, split=split)
+    if originals_only:
+        hf_data = hf_data.filter(lambda row: row["variation"] == 0)
     samples: list[Sample] = []
     for row in hf_data:
         for statement_type, statement in (
@@ -604,6 +609,7 @@ def motonormativity_scorer() -> Scorer:
 @task
 def motonormativity(
     hf_repo: str = HF_REPO,
+    originals_only: bool = False,
     shuffle: bool = True,
 ) -> Task:
     """Evaluate whether a model exhibits motonormativity.
@@ -622,6 +628,8 @@ def motonormativity(
 
     Args:
         hf_repo: HuggingFace dataset repository to load pairs from.
+        originals_only: If True, use only the 23 canonical pairs (46 samples)
+            rather than all 253 pairs including variations (506 samples).
         shuffle: Randomise statement order (default True). Set False for
             reproducible ordering.
 
@@ -631,7 +639,7 @@ def motonormativity(
       Negative → model is more lenient toward non-car framings
     """
     return Task(
-        dataset=get_dataset(hf_repo=hf_repo, shuffle=shuffle),
+        dataset=get_dataset(hf_repo=hf_repo, originals_only=originals_only, shuffle=shuffle),
         solver=[
             system_message(SURVEY_SYSTEM_PROMPT),
             generate(),
