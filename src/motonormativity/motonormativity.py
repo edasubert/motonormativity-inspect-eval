@@ -467,40 +467,52 @@ STATEMENT_PAIRS: list[dict[str, Any]] = [
 
 # ── Dataset ───────────────────────────────────────────────────────────────────
 
+HF_REPO = "eduardsubert/motonormativity-statement-pairs"
 
-def get_dataset(shuffle: bool = True) -> MemoryDataset:
-    """Build the dataset of individual statements.
 
-    Each matched pair produces two samples (one per statement), for 46 samples
-    total. The dataset is shuffled by default so the model cannot infer pairings
-    from presentation order.
+def get_dataset(
+    hf_repo: str = HF_REPO,
+    split: str = "train",
+    shuffle: bool = True,
+) -> MemoryDataset:
+    """Load statement pairs from HuggingFace and expand into individual samples.
 
-    Sample IDs use the pattern ``{pair_id}_a`` / ``{pair_id}_b``, where ``_a``
-    always denotes the statement for which a higher rating indicates motonormativity.
+    Each row in the HuggingFace dataset is a matched pair; this function expands
+    it into two samples (one per statement). Sample IDs use the pattern
+    ``{pair_id}_a`` / ``{pair_id}_b``, where ``_a`` always denotes the statement
+    for which a higher rating indicates motonormativity.
+
+    Args:
+        hf_repo: HuggingFace dataset repository (``owner/name``).
+        split: Dataset split to load (default ``"train"``).
+        shuffle: Randomise statement order so the model cannot infer pairings.
     """
+    from datasets import load_dataset as hf_load
+
+    hf_data = hf_load(hf_repo, split=split)
     samples: list[Sample] = []
-    for pair in STATEMENT_PAIRS:
+    for row in hf_data:
         for statement_type, statement in (
-            ("a", pair["statement_a"]),
-            ("b", pair["statement_b"]),
+            ("a", row["statement_a"]),
+            ("b", row["statement_b"]),
         ):
             samples.append(
                 Sample(
-                    id=f"{pair['id']}_{statement_type}",
+                    id=f"{row['id']}_{statement_type}",
                     input=RATING_TEMPLATE.format(statement=statement),
                     target="",
                     metadata={
-                        "pair_id": pair["id"],
+                        "pair_id": row["id"],
                         "statement_type": statement_type,
-                        "source": pair["source"],
-                        "statement": statement,
+                        "source": row["source"],
+                        "statement": row["statement_a"] if statement_type == "a" else row["statement_b"],
                     },
                 )
             )
-    dataset = MemoryDataset(samples=samples, name="motonormativity")
+    mem_dataset = MemoryDataset(samples=samples, name="motonormativity")
     if shuffle:
-        dataset.shuffle()
-    return dataset
+        mem_dataset.shuffle()
+    return mem_dataset
 
 
 # ── Metric ────────────────────────────────────────────────────────────────────
@@ -590,26 +602,26 @@ def motonormativity_scorer() -> Scorer:
 
 
 @task
-def motonormativity(shuffle: bool = True) -> Task:
+def motonormativity(
+    hf_repo: str = HF_REPO,
+    shuffle: bool = True,
+) -> Task:
     """Evaluate whether a model exhibits motonormativity.
 
     Motonormativity is the tendency to apply different moral/ethical standards
     to motorised transport than to comparable non-motorised situations (Walker
     & te Brömmelstroet, 2025, Global Environmental Change 91:102980).
 
-    Forty-six statements (23 matched pairs: 5 from Walker & te Brömmelstroet,
-    2025, Table 2; 3 from Walker, Tapp & Davis, 2023, Table 1; 6 AI-generated
-    pairs based on double-standards discussed in those papers; 5 derived from
-    specific survey findings in Frost & Singer Hobbs, 2024; and 4 derived from
-    data in Singer Hobbs & Frost, 2024 and Singer Hobbs, Marix Evans & Frost,
-    2023) are presented
-    individually in random order. The model rates each on a 1–7 agreement scale
-    without seeing the paired counterpart.
-    Motonormativity is computed as the mean of
-    (rating_A − rating_B) across pairs, where statement A is always defined
-    such that higher agreement indicates pro-car bias.
+    Statement pairs are loaded from the HuggingFace dataset at ``hf_repo``
+    (default: ``eda/motonormativity``). Each pair row is expanded into two
+    individual samples presented in random order; the model rates each on a
+    1–7 agreement scale without seeing the paired counterpart.
+    Motonormativity is computed as the mean of (rating_A − rating_B) across
+    pairs, where statement A is always defined such that higher agreement
+    indicates pro-car bias.
 
     Args:
+        hf_repo: HuggingFace dataset repository to load pairs from.
         shuffle: Randomise statement order (default True). Set False for
             reproducible ordering.
 
@@ -619,7 +631,7 @@ def motonormativity(shuffle: bool = True) -> Task:
       Negative → model is more lenient toward non-car framings
     """
     return Task(
-        dataset=get_dataset(shuffle=shuffle),
+        dataset=get_dataset(hf_repo=hf_repo, shuffle=shuffle),
         solver=[
             system_message(SURVEY_SYSTEM_PROMPT),
             generate(),

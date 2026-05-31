@@ -10,4 +10,4 @@ doi: https://doi.org/10.1016/j.gloenvcha.2025.102980
 group: Bias
 tasks:
   - name: motonormativity
-    dataset_samples: 46
+    dataset_samples: 506

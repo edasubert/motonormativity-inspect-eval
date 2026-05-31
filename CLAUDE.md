@@ -21,18 +21,28 @@ All Python commands use the project venv:
 # Run against a specific model
 .venv/bin/inspect eval src/motonormativity/motonormativity.py@motonormativity --model anthropic/claude-sonnet-4-5
 
+# Override the HuggingFace repo at runtime
+.venv/bin/inspect eval src/motonormativity/motonormativity.py@motonormativity -T hf_repo=owner/repo-name
+
 # Install / sync dependencies
 .venv/bin/pip install -e .
 
-# Install inspect-ai directly
-.venv/bin/pip install inspect-ai
+# Regenerate dataset variations (calls Anthropic API; outputs to dataset/variations/)
+.venv/bin/python scripts/generate_variations.py <pair_id> [pair_id ...]
+
+# Merge variation JSON files into dataset/motonormativity_pairs.csv
+.venv/bin/python scripts/build_dataset_csv.py
 ```
 
 ## Architecture
 
-`src/motonormativity/motonormativity.py` contains everything: dataset, scorer, and task.
+`src/motonormativity/motonormativity.py` contains everything: dataset loader, scorer, and task.
 
-**Dataset** (`get_dataset`): 20 individual statement samples (2 per matched pair, 10 pairs total — 5 from the paper's Table 2, 5 novel). Statements are shuffled by default so the model cannot infer pairings from presentation order. Sample IDs are `{pair_id}_a` / `{pair_id}_b`.
+**Dataset** (`get_dataset`): Loads statement pairs from HuggingFace (`eduardsubert/motonormativity-statement-pairs` by default). Each pair row is expanded into two individual samples (506 total across 253 pairs). Samples are shuffled by default so the model cannot infer pairings from presentation order. Sample IDs are `{pair_id}_a` / `{pair_id}_b`.
+
+**`STATEMENT_PAIRS`**: The 23 canonical pairs are kept in `motonormativity.py` as the authoritative source for the generation scripts (`scripts/generate_variations.py` imports them). They are not used by the eval at runtime.
+
+**Dataset generation**: `scripts/generate_variations.py` calls Claude Opus to generate 10 variations per pair, writing one JSON file to `dataset/variations/`. `scripts/build_dataset_csv.py` merges those into `dataset/motonormativity_pairs.csv` for HuggingFace upload. The `dataset/` directory is gitignored.
 
 **Scoring** (`motonormativity_scorer`): Each sample gets a raw 1–7 rating as `Score.value`. The `pair_id` and `statement_type` ("a" or "b") are stored in `Score.metadata` for the metric to use.
 
@@ -40,7 +50,7 @@ All Python commands use the project venv:
 
 **Score interpretation**: positive mean = pro-car bias; 0 = equal treatment; negative = anti-car bias.
 
-**Statement pair convention**: `statement_a` is always the statement for which higher agreement indicates motonormativity. The `dimension` field groups pairs by type: `harm_restriction`, `harm_inevitability`, `accountability`, `resource_allocation`, `regulation`, `property_value`, `agency_attribution`.
+**Statement pair convention**: `statement_a` is always the statement for which higher agreement indicates motonormativity.
 
 ## inspect_evals compatibility
 
