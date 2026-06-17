@@ -14,8 +14,8 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
-from motonormativity.motonormativity import STATEMENT_PAIRS
+sys.path.insert(0, str(Path(__file__).parent))
+from pairs import STATEMENT_PAIRS
 
 import anthropic
 

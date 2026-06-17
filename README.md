@@ -47,18 +47,6 @@ Results are saved to `logs/` and can be viewed with:
 .venv/bin/inspect view
 ```
 
-## Regenerating the dataset
-
-The generation scripts are in `scripts/`. They require `ANTHROPIC_API_KEY` to be set.
-
-```bash
-# Generate 10 variations for a subset of pairs (outputs to dataset/variations/)
-.venv/bin/python scripts/generate_variations.py fumes noise fatalism
-
-# Merge all variation JSON files into dataset/motonormativity_pairs.csv
-.venv/bin/python scripts/build_dataset_csv.py
-```
-
 ## Citation
 
 If you use this eval, please cite the original paper on which it is based:

@@ -42,11 +42,11 @@ All Python commands use the project venv:
 
 ## Architecture
 
-`src/motonormativity/motonormativity.py` contains everything: dataset loader, scorer, and task.
+`src/motonormativity/motonormativity.py` contains the dataset loader, scorer, and task. It loads everything from HuggingFace at runtime and has no hardcoded statement data.
 
 **Dataset** (`get_dataset`): Loads statement pairs from HuggingFace (`eduardsubert/motonormativity-statement-pairs` by default). Each pair row is expanded into two individual samples (506 total across 253 pairs). Samples are shuffled by default so the model cannot infer pairings from presentation order. Sample IDs are `{pair_id}_a` / `{pair_id}_b`.
 
-**`STATEMENT_PAIRS`**: The 23 canonical pairs are kept in `motonormativity.py` as the authoritative source for the generation scripts (`scripts/generate_variations.py` imports them). They are not used by the eval at runtime.
+**`STATEMENT_PAIRS`**: The 23 canonical pairs live in `scripts/pairs.py`, which is the authoritative source for the generation scripts. They are not used by the eval at runtime.
 
 **Dataset generation**: `scripts/generate_variations.py` calls Claude Opus to generate 10 variations per pair, writing one JSON file to `dataset/variations/`. `scripts/build_dataset_csv.py` merges those into `dataset/motonormativity_pairs.csv` for HuggingFace upload. The `dataset/` directory is gitignored.
 
