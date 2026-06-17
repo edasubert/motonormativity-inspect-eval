@@ -47,6 +47,12 @@ Results are saved to `logs/` and can be viewed with:
 .venv/bin/inspect view
 ```
 
+## Running the tests
+
+```bash
+.venv/bin/pytest tests/
+```
+
 ## Citation
 
 If you use this eval, please cite the original paper on which it is based:

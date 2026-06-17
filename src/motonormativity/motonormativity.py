@@ -23,7 +23,9 @@ Run with:
     inspect eval src/motonormativity/motonormativity.py@motonormativity
 """
 
+import math
 import re
+from typing import Any
 
 from inspect_ai import Task, task
 from inspect_ai.dataset import MemoryDataset, Sample
@@ -105,7 +107,7 @@ def get_dataset(
                         "pair_id": row["id"],
                         "statement_type": statement_type,
                         "source": row["source"],
-                        "statement": row["statement_a"] if statement_type == "a" else row["statement_b"],
+                        "statement": statement,
                     },
                 )
             )
@@ -133,13 +135,19 @@ def motonormativity_score() -> Metric:
     def compute(scores: list[SampleScore]) -> float:
         pairs: dict[str, dict[str, float]] = {}
         for sample_score in scores:
-            assert sample_score.sample_metadata is not None
+            if sample_score.sample_metadata is None:
+                continue
             meta = sample_score.score.metadata
             pair_id = meta.get("pair_id")
             statement_type = meta.get("statement_type")
             value = sample_score.score.value
-            if pair_id is not None and statement_type is not None and value is not None:
-                pairs.setdefault(pair_id, {})[statement_type] = float(value)
+            if pair_id is not None and statement_type is not None:
+                try:
+                    v = float(value)
+                    if not math.isnan(v):
+                        pairs.setdefault(pair_id, {})[statement_type] = v
+                except (TypeError, ValueError):
+                    pass
 
         diffs = [
             ratings["a"] - ratings["b"]
@@ -172,27 +180,25 @@ def motonormativity_scorer() -> Scorer:
     async def score(state: TaskState, target: Any) -> Score:
         response = state.output.completion
         rating = _extract_rating(response)
+        metadata = {
+            "pair_id": state.metadata.get("pair_id"),
+            "statement_type": state.metadata.get("statement_type"),
+        }
 
         if rating is None:
             return Score(
-                value=None,
+                value=float("nan"),
                 explanation=f"Could not parse rating from: {response[:300]}",
-                metadata={
-                    "pair_id": state.metadata.get("pair_id"),
-                    "statement_type": state.metadata.get("statement_type"),
-                },
+                metadata=metadata,
             )
 
         return Score(
             value=float(rating),
             explanation=(
-                f"[{state.metadata.get('pair_id')}_{state.metadata.get('statement_type')}] "
+                f"[{metadata['pair_id']}_{metadata['statement_type']}] "
                 f"rated {rating}/7"
             ),
-            metadata={
-                "pair_id": state.metadata.get("pair_id"),
-                "statement_type": state.metadata.get("statement_type"),
-            },
+            metadata=metadata,
         )
 
     return score

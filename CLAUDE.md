@@ -30,6 +30,12 @@ All Python commands use the project venv:
 # Override the HuggingFace repo at runtime
 .venv/bin/inspect eval src/motonormativity/motonormativity.py@motonormativity -T hf_repo=owner/repo-name
 
+# Run unit tests
+.venv/bin/pytest tests/
+
+# Run unit tests with coverage report
+.venv/bin/pytest tests/ --cov=motonormativity --cov-report=term-missing
+
 # Install / sync dependencies
 .venv/bin/pip install -e .
 
@@ -50,7 +56,7 @@ All Python commands use the project venv:
 
 **Dataset generation**: `scripts/generate_variations.py` calls Claude Opus to generate 10 variations per pair, writing one JSON file to `dataset/variations/`. `scripts/build_dataset_csv.py` merges those into `dataset/motonormativity_pairs.csv` for HuggingFace upload. The `dataset/` directory is gitignored.
 
-**Scoring** (`motonormativity_scorer`): Each sample gets a raw 1–7 rating as `Score.value`. The `pair_id` and `statement_type` ("a" or "b") are stored in `Score.metadata` for the metric to use.
+**Scoring** (`motonormativity_scorer`): Each sample gets a raw 1–7 rating as `Score.value`, or `float("nan")` if no rating could be parsed. The `pair_id` and `statement_type` ("a" or "b") are stored in `Score.metadata` for the metric to use.
 
 **Metric** (`motonormativity_score`): Groups scores by `pair_id`, then computes `rating_a − rating_b` per pair and returns the mean across all complete pairs (range −6 to +6).
 

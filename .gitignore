@@ -11,6 +11,7 @@ dataset/
 # Reference repo and article (not part of this project's source)
 inspect_evals/
 article/
+paper/
 
 # Python
 __pycache__/
